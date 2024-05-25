@@ -1,6 +1,7 @@
 {
+    "exp_name": "MaskRCNN-BCE-Loss-EqualWeight-Laplacian",
     "name": "RRDB_ESRGANx4",
-    "n_gpu": 4,
+    "n_gpu": 5,
     "model": "srgan",
     "distortion": "sr",
     "scale": 4,
@@ -25,10 +26,10 @@
     "data_loader": {
         "type": "MyDataMaskRCNNDataloader",
         "args": {
-            "data_dir": "./satellite_data/new_patch_data/patch_images",
-            "meta_data_dir": "./satellite_data/new_patch_data/train_data.json",
-            "mask_dir": "./satellite_data/new_patch_data/patch_masks",
-            "batch_size": 8,
+            "data_dir": "./new_patch_data/patch_images",
+            "meta_data_dir": "./new_patch_data/train_data.json",
+            "mask_dir": "./new_patch_data/patch_masks",
+            "batch_size": 10,
             "shuffle": true,
             "validation_split": 0.0,
             "num_workers": 1
@@ -37,10 +38,10 @@
     "val_data_loader": {
         "type": "MyDataMaskRCNNDataloader",
         "args": {
-            "data_dir": "./satellite_data/new_patch_data/patch_images",
-            "meta_data_dir": "./satellite_data/new_patch_data/val_data.json",
-            "mask_dir": "./satellite_data/new_patch_data/patch_masks",
-            "batch_size": 8,
+            "data_dir": "./new_patch_data/patch_images",
+            "meta_data_dir": "./new_patch_data/val_data.json",
+            "mask_dir": "./new_patch_data/patch_masks",
+            "batch_size": 10,
             "shuffle": false,
             "num_workers": 1,
             "training": false
@@ -93,7 +94,7 @@
         }
     },
     "train": {
-        "niter": 134600,
+        "niter": 107700,
         "warmup_iter": -1,
         "pixel_criterion": "l1",
         "pixel_weight": 0.01,
@@ -104,7 +105,7 @@
         "D_update_ratio": 1,
         "D_init_iters": 0,
         "manual_seed": 10,
-        "val_freq": 673,
+        "val_freq": 1077,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
@@ -123,9 +124,9 @@
     "path": {
         "models": "./saved/pretrained_models_EESRGAN_FRCNN",
         "FRCNN_model": "./saved/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/",
-        "pretrain_model_G": "./saved/pretrained_models_EESRGAN_FRCNN/170000_G.pth",
-        "pretrain_model_D": "./saved/pretrained_models_EESRGAN_FRCNN/170000_D.pth",
-        "pretrain_model_FRCNN": "./saved/pretrained_models_EESRGAN_FRCNN/170000_FRCNN.pth",
+        "pretrain_model_G": "./pretrained_weights/170000_G.pth",
+        "pretrain_model_D": "./pretrained_weights/170000_D.pth",
+        "pretrain_model_FRCNN": "./pretrained_weights/170000_FRCNN.pth",
         "pretrain_model_FRCNN_LR_LR": "./saved/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/0_FRCNN_LR_LR.pth",
         "training_state": "./saved/training_state",
         "strict_load": false,
@@ -148,6 +149,6 @@
     },
     "logger": {
         "print_freq": 1,
-        "save_checkpoint_freq": 1346
+        "save_checkpoint_freq": 5385
     }
 }

@@ -124,7 +124,7 @@ dependencies:
       - pluggy==0.13.1
       - prometheus-client==0.17.1
       - prompt-toolkit==3.0.36
-      - protobuf==3.19.6
+      - protobuf
       - psutil==5.9.6
       - ptyprocess==0.7.0
       - py==1.11.0
@@ -149,7 +149,7 @@ dependencies:
       - sentry-sdk==2.1.1
       - setproctitle==1.2.3
       - smmap==5.0.0
-      - tensorboard==2.10.1
+      - tensorboard
       - tensorboard-data-server==0.6.1
       - tensorboard-plugin-wit==1.8.1
       - tensorboardx==2.6.2.2
@@ -162,7 +162,6 @@ dependencies:
       - traitlets==4.3.3
       - typing-extensions==4.1.1
       - urllib3==1.26.18
-      - wandb==0.15.12
       - wcwidth==0.2.9
       - webencodings==0.5.1
       - werkzeug==2.0.3

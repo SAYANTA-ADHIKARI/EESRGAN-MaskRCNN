@@ -7,6 +7,7 @@ import data_loader.data_loaders as module_data
 from parse_config import ConfigParser
 from trainer import MyDataMaskRCNNTrainer
 from utils import setup_logger
+import sys
 
 """
 python train.py -c config_GAN_original.json
@@ -21,6 +22,10 @@ np.random.seed(SEED)
 
 
 def main(config):
+
+    print(f"{'*'*70}")
+    print(f"{'*'*6} Experiment Name: {config['exp_name']} {'*'*6}")
+    print(f"{'*'*70}")
     # logger = config.get_logger('train')
     # config loggers. Before it, the log will not work
     setup_logger(
