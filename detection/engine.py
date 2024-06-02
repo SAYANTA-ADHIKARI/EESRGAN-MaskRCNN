@@ -14,6 +14,7 @@ from .utils import MetricLogger, SmoothedValue, warmup_lr_scheduler, reduce_dict
 from utils import tensor2img
 from tqdm import tqdm
 import logging
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger("val")
 
@@ -104,13 +105,60 @@ def draw_detection_boxes(new_class_conf_box, config, file_name, image, actual_im
 '''
 for generating test boxes
 '''
-def get_prediction(outputs, file_path, config, file_name, image, actual_image, threshold=0.5):
+
+COLOUR_DICT = {
+    0: [0, 0, 0, 1.0],
+    1: [0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0],
+    2: [1.0, 0.4980392156862745, 0.054901960784313725, 1.0],
+    3: [0.17254901960784313, 0.6274509803921569, 0.17254901960784313, 1.0],
+    4: [0.8392156862745098, 0.15294117647058825, 0.1568627450980392, 1.0],
+    5: [0.5803921568627451, 0.403921568627451, 0.7411764705882353, 1.0],
+    6: [0.5490196078431373, 0.33725490196078434, 0.29411764705882354, 1.0],
+    7: [0.8901960784313725, 0.4666666666666667, 0.7607843137254902, 1.0],
+    8: [0.4980392156862745, 0.4980392156862745, 0.4980392156862745, 1.0],
+    9: [0.7372549019607844, 0.7411764705882353, 0.13333333333333333, 1.0],
+    10: [0.09019607843137255, 0.7450980392156863, 0.8117647058823529, 1.0],
+    11: [0.6196078431372549, 0.8549019607843137, 0.8980392156862745, 1.0],
+}
+
+def get_masks(masks, labels):
+    _, H, W = masks.shape
+    req_mask = np.zeros((H, W, 4))
+    labels = labels.cpu().numpy()
+    unique_values, counts = np.unique(labels, return_counts=True)
+    unique_counts_dict = dict(zip(unique_values, counts))
+    color_dict = {}
+    for i in unique_values:
+        color_dict[i] = []
+        intensity = np.linspace(0.1, 1.0, unique_counts_dict[i])
+        for j in range(unique_counts_dict[i]):
+            color = COLOUR_DICT[i]
+            color[3] = intensity[j]
+            color_dict[i].append(color)
+    masks = masks.cpu().numpy()
+    masks = list(masks)
+    for label, mask in zip(labels, masks):
+        color = color_dict[label].pop(0)
+        new_mask = np.zeros((H, W, 4))
+        new_mask[mask > 0] = color
+        req_mask = req_mask + new_mask
+
+    np.clip(req_mask, 0, 1, out=req_mask)
+    return req_mask
+
+def get_prediction(outputs, file_path, config, file_name, image, actual_image, fileptr ,threshold=0.5):
     print(file_path)
     print(file_name)
+    fileptr.write(file_name + '\n')
     new_class_conf_box = list()
     pred_class = [i for i in list(outputs[0]['labels'].detach().cpu().numpy())] # Get the Prediction Score
     text_boxes = [ [i[0], i[1], i[2], i[3] ] for i in list(outputs[0]['boxes'].detach().cpu().numpy())] # Bounding boxes
     pred_score = list(outputs[0]['scores'].detach().cpu().numpy())
+    masks = get_masks(outputs[0]['masks'].squeeze(1), outputs[0]['labels'])
+    dest_image_path = os.path.join(config['path']['Test_Result_SR'], "test_generated_masks" ,file_name+'.png')
+    plt.imsave(dest_image_path, masks)
+    for pred_scor, label, text_box in zip(pred_score, pred_class, text_boxes):
+        fileptr.write(str(label) + ' ' + str(pred_scor) + ' [' + str(int(text_box[0])) + ' ' + str(int(text_box[1])) + ' ' + str(int(text_box[2])) + ' ' + str(int(text_box[3]))+ ']\n')
     #print(pred_score)
     for i in range(len(text_boxes)):
         new_class_conf_box.append([pred_class[i], pred_score[i], int(text_boxes[i][0]), int(text_boxes[i][1]), int(text_boxes[i][2]), int(text_boxes[i][3])])
@@ -125,6 +173,9 @@ def get_prediction(outputs, file_path, config, file_name, image, actual_image, t
 def evaluate_save(model_G, model_FRCNN, data_loader, device, config):
     i = 0
     print("Detection started........")
+    os.makedirs(os.path.join(config['path']['Test_Result_SR'], "test_generated_masks"), exist_ok=True)
+    f = open(os.path.join(config['path']['Test_Result_SR'], "test_generated_masks" ,'test_results.txt'), 'a')
+    f.write("Detection Results\n")
     for image, targets in data_loader:
         #print(targets)
         actual_image = copy.deepcopy(image['image_lq'][0])
@@ -141,7 +192,7 @@ def evaluate_save(model_G, model_FRCNN, data_loader, device, config):
         print(i)
         img = img[0].detach()[0].float().cpu()
         img = tensor2img(img)
-        get_prediction(outputs, file_path, config, file_name, img, actual_image)
+        get_prediction(outputs, file_path, config, file_name, img, actual_image, f)
     print("successfully generated the results!")
 
 '''
@@ -221,19 +272,16 @@ def evaluate(model_G, model_FRCNN, data_loader, device, train):
             counter += 1
 
         # Check for NaN loss
-        losses = 0
-        for k, val in loss_dict.items():
-            losses = losses + val
-        if torch.isnan(losses):
-            print(f" Evaluate Loss is Nan, {loss_dict}, Image ID: {targets[0]['image_id']}")
-            sys.exit()
+            losses = 0
+            for k, val in loss_dict.items():
+                losses = losses + val
+            if torch.isnan(losses):
+                print(f" Evaluate Loss is Nan, {loss_dict}, Image ID: {targets[0]['image_id']}")
+                sys.exit()
 
-        
-
-
-    for k in log_dict.keys():
-        log_dict[k] = log_dict[k]/len(data_loader)
-    
+            for k in log_dict.keys():
+                log_dict[k] = log_dict[k]/len(data_loader)
+            
     if metric_flag:
         # gather the stats from all processes
         metric_logger.synchronize_between_processes()

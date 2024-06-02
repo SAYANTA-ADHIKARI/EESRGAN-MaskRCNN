@@ -1,23 +1,24 @@
 import argparse
-import torch
-from tqdm import tqdm
 import data_loader.data_loaders as module_data
-import model.loss as module_loss
-import model.metric as module_metric
-import model.model as module_arch
 from parse_config import ConfigParser
-from trainer import COWCFRCNNTrainer, COWCGANTrainer, COWCGANFrcnnTrainer
+from trainer import MyDataMaskRCNNTrainer
 '''
 python test.py -c config_GAN.json
 '''
 
 def main(config):
 
-    data_loader = module_data.COWCGANFrcnnDataLoader(
-        "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/test_dir/HR/",
-        "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/test_dir/LR/", 
-    1, training=False)
-    tester = COWCGANFrcnnTrainer(config=config, data_loader=data_loader)
+    data_loader = module_data.MyDataMaskRCNNDataloader(
+        data_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/patch_images",
+        meta_data_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/test_data.json",
+        mask_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/patch_masks",
+        batch_size=10,
+        shuffle=False,
+        validation_split=0.0,
+        training=False,
+        num_workers=2
+    )
+    tester = MyDataMaskRCNNTrainer(config=config, data_loader=data_loader)
     tester.test()
 
     '''

@@ -1,5 +1,5 @@
 {
-    "exp_name": "MaskRCNN-BCE-Loss-EqualWeight-Laplacian",
+    "exp_name": "MaskRCNN-FocalLoss-EqualWeight",
     "name": "RRDB_ESRGANx4",
     "n_gpu": 5,
     "model": "srgan",
@@ -13,8 +13,8 @@
         "out_nc": 3,
         "nf": 64,
         "nb": 23,
-        "filter": "laplacian",
-        "filter_size": 21,
+        "filter": "sobel",
+        "filter_size": 99,
         "args": {}
     },
     "network_D": {
@@ -26,11 +26,11 @@
     "data_loader": {
         "type": "MyDataMaskRCNNDataloader",
         "args": {
-            "data_dir": "./new_patch_data/patch_images",
-            "meta_data_dir": "./new_patch_data/train_data.json",
-            "mask_dir": "./new_patch_data/patch_masks",
+            "data_dir": "./satellite_data/new_patch_data/patch_images",
+            "meta_data_dir": "./satellite_data/new_patch_data/train_data.json",
+            "mask_dir": "./satellite_data/new_patch_data/patch_masks",
             "batch_size": 10,
-            "shuffle": true,
+            "shuffle": false,
             "validation_split": 0.0,
             "num_workers": 1
         }
@@ -38,11 +38,11 @@
     "val_data_loader": {
         "type": "MyDataMaskRCNNDataloader",
         "args": {
-            "data_dir": "./new_patch_data/patch_images",
-            "meta_data_dir": "./new_patch_data/val_data.json",
-            "mask_dir": "./new_patch_data/patch_masks",
+            "data_dir": "./satellite_data/new_patch_data/patch_images",
+            "meta_data_dir": "./satellite_data/new_patch_data/val_data.json",
+            "mask_dir": "./satellite_data/new_patch_data/patch_masks",
             "batch_size": 10,
-            "shuffle": false,
+            "shuffle": true,
             "num_workers": 1,
             "training": false
         }
@@ -68,23 +68,22 @@
         "type": "MultiStepLR",
         "args": {
             "lr_steps": [
-                5000,
-                10000,
-                15000,
-                20000,
-                25000
+                50000,
+                100000,
+                200000,
+                300000
             ],
             "lr_gamma": 0.5,
             "T_period": [
-                25000,
-                25000,
-                25000,
-                25000
+                250000,
+                250000,
+                250000,
+                250000
             ],
             "restarts": [
-                2500,
-                5000,
-                7500
+                250000,
+                500000,
+                750000
             ],
             "restart_weights": [
                 1,
@@ -95,7 +94,7 @@
         }
     },
     "train": {
-        "niter": 21540,
+        "niter": 89800,
         "warmup_iter": -1,
         "pixel_criterion": "l1",
         "pixel_weight": 0.01,
@@ -106,8 +105,8 @@
         "D_update_ratio": 1,
         "D_init_iters": 0,
         "manual_seed": 10,
-        "val_freq": 1077,
-        "save_dir": "saved_1/",
+        "val_freq": 898,
+        "save_dir": "saved_test/",
         "save_period": 1,
         "verbosity": 2,
         "monitor": "min val_loss",
@@ -123,33 +122,33 @@
         }
     },
     "path": {
-        "models": "./saved_1/pretrained_models_EESRGAN_FRCNN",
-        "FRCNN_model": "./saved_1/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/",
+        "models": "./saved_test/pretrained_models_EESRGAN_FRCNN",
+        "FRCNN_model": "./saved_test/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/",
         "pretrain_model_G": "./pretrained_weights/latest_G.pth",
         "pretrain_model_D": "./pretrained_weights/latest_D.pth",
         "pretrain_model_FRCNN": "./pretrained_weights/latest_FRCNN.pth",
-        "pretrain_model_FRCNN_LR_LR": "./saved_1/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/0_FRCNN_LR_LR.pth",
-        "training_state": "./saved_1/training_state",
+        "pretrain_model_FRCNN_LR_LR": "./saved_test/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/0_FRCNN_LR_LR.pth",
+        "training_state": "./saved_test/training_state",
         "strict_load": false,
         "resume_state": "~",
-        "val_images": "./saved_1/val_images",
-        "output_images": "./saved_1/val_images_cars_new",
-        "log": "./saved_1/logs",
+        "val_images": "./saved_test/val_images",
+        "output_images": "./saved_test/val_images_cars_new",
+        "log": "./saved_test/logs",
         "data_dir_Valid": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/val_dir/LR/",
-        "data_dir_F_SR": "./saved_1/Final_SR_images_test/",
-        "data_dir_SR": "./saved_1/SR_images_test/",
-        "data_dir_SR_combined": "./saved_1/combined_SR_images_216000/",
-        "data_dir_E_SR_1": "./saved_1/enhanced_SR_images_1/",
-        "data_dir_E_SR_2": "./saved_1/enhanced_SR_images_2/",
-        "data_dir_E_SR_3": "./saved_1/enhanced_SR_images_3/",
+        "data_dir_F_SR": "./saved_test/Final_SR_images_test/",
+        "data_dir_SR": "./saved_test/SR_images_test/",
+        "data_dir_SR_combined": "./saved_test/combined_SR_images_216000/",
+        "data_dir_E_SR_1": "./saved_test/enhanced_SR_images_1/",
+        "data_dir_E_SR_2": "./saved_test/enhanced_SR_images_2/",
+        "data_dir_E_SR_3": "./saved_test/enhanced_SR_images_3/",
         "data_dir_Bic": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/HR/x4/",
         "data_dir_LR_train": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/train_dir/LR/",
         "data_dir_Bic_valid": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/Bic/x4",
-        "Test_Result_LR_LR_COWC": "./saved_1/Test_Result_LR_LR_COWC/",
-        "Test_Result_SR": "./saved_1/Test_Result_SR/"
+        "Test_Result_LR_LR_COWC": "./saved_test/Test_Result_LR_LR_COWC/",
+        "Test_Result_SR": "./saved_test/Test_Result_SR/"
     },
     "logger": {
         "print_freq": 1,
-        "save_checkpoint_freq": 4308
+        "save_checkpoint_freq": 4490
     }
 }

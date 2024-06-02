@@ -20,7 +20,20 @@ logger = logging.getLogger("base")
 python train.py -c config_GAN.json
 modified from ESRGAN repo
 """
-
+COLOUR_DICT = {
+    0: [0, 0, 0, 1.0],
+    1: [0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0],
+    2: [1.0, 0.4980392156862745, 0.054901960784313725, 1.0],
+    3: [0.17254901960784313, 0.6274509803921569, 0.17254901960784313, 1.0],
+    4: [0.8392156862745098, 0.15294117647058825, 0.1568627450980392, 1.0],
+    5: [0.5803921568627451, 0.403921568627451, 0.7411764705882353, 1.0],
+    6: [0.5490196078431373, 0.33725490196078434, 0.29411764705882354, 1.0],
+    7: [0.8901960784313725, 0.4666666666666667, 0.7607843137254902, 1.0],
+    8: [0.4980392156862745, 0.4980392156862745, 0.4980392156862745, 1.0],
+    9: [0.7372549019607844, 0.7411764705882353, 0.13333333333333333, 1.0],
+    10: [0.09019607843137255, 0.7450980392156863, 0.8117647058823529, 1.0],
+    11: [0.6196078431372549, 0.8549019607843137, 0.8980392156862745, 1.0],
+}
 
 class MyDataMaskRCNNTrainer:
     """
@@ -89,7 +102,7 @@ class MyDataMaskRCNNTrainer:
                     )
                 )
                 from tensorboardX import SummaryWriter
-            tb_logger = SummaryWriter(log_dir="saved/tb_logger/" + self.config["name"])
+            tb_logger = SummaryWriter(log_dir=os.path.join(self.config["train"]["save_dir"], "tb_logger/", self.config["name"]))
         ## Todo : resume capability
         current_step = 0
         start_epoch = 0
@@ -105,7 +118,7 @@ class MyDataMaskRCNNTrainer:
         print(f"{'#'*20}")
         for epoch in range(start_epoch, self.total_epochs + 1):
             for _, (image, targets) in tqdm(
-                enumerate(self.data_loader), desc="epoch: ", total=len(self.data_loader)
+                enumerate(self.data_loader), desc=f"Epoch {epoch}: ", total=len(self.data_loader)
             ):
                 current_step += 1
                 if current_step > self.total_iters:
@@ -254,14 +267,11 @@ class MyDataMaskRCNNTrainer:
                         # Saving masks for reference
                         results = visuals["FRCNN"]
                         masks = results[0]["masks"]
+                        labels = results[0]["labels"]
                         masks = masks.squeeze(1)
-                        masks = (masks - masks.min())/ (masks.max() - masks.min())
                         masks = masks >= 0.5
-                        masks = masks.sum(0)
-                        masks = masks > 0 
-                        masks = masks.cpu().numpy()
-                        masks = masks * 255
-                        masks = masks.astype(np.uint8)
+                        masks = masks.float()
+                        masks = get_masks(masks, labels)
                         import matplotlib.pyplot as plt
                         mask_path = os.path.join(
                             img_dir, "{:s}_{:d}_mask.jpg".format(img_name, current_step)
@@ -273,3 +283,30 @@ class MyDataMaskRCNNTrainer:
         json.dump({"val_loss": val_loss, "current_step": current_step}, 
                   open(os.path.join(self.config["path"]["models"], "status.json"), "w"))
         logger.info("End of training.")
+
+
+def get_masks(masks, labels):
+    _, H, W = masks.shape
+    req_mask = np.zeros((H, W, 4))
+    req_mask[:, :, 3] = np.ones((H, W))
+    labels = labels.cpu().numpy()
+    unique_values, counts = np.unique(labels, return_counts=True)
+    unique_counts_dict = dict(zip(unique_values, counts))
+    color_dict = {}
+    for i in unique_values:
+        color_dict[i] = []
+        intensity = np.linspace(0.1, 1.0, unique_counts_dict[i])
+        for j in range(unique_counts_dict[i]):
+            color = COLOUR_DICT[i]
+            color[3] = intensity[j]
+            color_dict[i].append(color)
+    masks = masks.cpu().numpy()
+    masks = list(masks)
+    for label, mask in zip(labels, masks):
+        color = color_dict[label].pop(0)
+        new_mask = np.zeros((H, W, 4))
+        new_mask[mask > 0] = color
+        req_mask = req_mask + new_mask
+
+    np.clip(req_mask, 0, 1, out=req_mask)
+    return req_mask

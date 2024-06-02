@@ -125,5 +125,6 @@ LOGs
 Logs_initial
 new_patch_data
 pretrained_weights
+test_patch_data
 
 *.ipynb

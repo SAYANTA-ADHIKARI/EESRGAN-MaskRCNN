@@ -176,7 +176,7 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
     def optimize_parameters(self, step):
         #Generator
         for p in self.netG.parameters():
-            p.requires_grad = True
+            p.requires_grad = True #NOTE: CHanged here for generator false
         for p in self.netD.parameters():
             p.requires_grad = False
         self.optimizer_G.zero_grad()
@@ -239,11 +239,11 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
 
             l_g_total.backward(retain_graph=True)
             nn.utils.clip_grad_norm_(self.netG.parameters(), self.config["clip_value"])
-            self.optimizer_G.step()
+            self.optimizer_G.step() #NOTE: Generator step stopped
 
         #descriminator
         for p in self.netD.parameters():
-            p.requires_grad = True
+            p.requires_grad = True # NOTE: Change Here for discriminator false 
 
         self.optimizer_D.zero_grad()
         l_d_total = 0
@@ -260,7 +260,7 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
 
         l_d_total.backward()
         nn.utils.clip_grad_norm_(self.netD.parameters(), self.config["clip_value"])
-        self.optimizer_D.step()
+        self.optimizer_D.step() #NOTE: Discriminator step stopped
 
         '''
         Freeze EESRGAN
@@ -376,7 +376,7 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
             # # for k, v in e.coco_eval.items():
             # #     print(k)
             # print(e.coco_eval['bbox'].eval['precision'].shape)
-            np.save('./required_precision.npy', e.coco_eval['bbox'].eval['precision'])
+            # np.save('./required_precision.npy', e.coco_eval['bbox'].eval['precision'])
             evaluate_save(self.netG, self.netFRCNN, self.targets, self.device, self.config)
         self.netG.train()
         self.netFRCNN.train()
