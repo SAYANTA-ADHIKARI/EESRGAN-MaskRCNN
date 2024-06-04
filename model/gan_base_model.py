@@ -96,11 +96,11 @@ class BaseModel():
                 load_net_clean[k[7:]] = v
             else:
                 load_net_clean[k] = v
-        if rem:
-            del load_net_clean['roi_heads.box_predictor.cls_score.weight']
-            del load_net_clean['roi_heads.box_predictor.cls_score.bias']
-            del load_net_clean['roi_heads.box_predictor.bbox_pred.weight']
-            del load_net_clean['roi_heads.box_predictor.bbox_pred.bias']
+        # if rem:
+        #     del load_net_clean['roi_heads.box_predictor.cls_score.weight']
+        #     del load_net_clean['roi_heads.box_predictor.cls_score.bias']
+        #     del load_net_clean['roi_heads.box_predictor.bbox_pred.weight']
+        #     del load_net_clean['roi_heads.box_predictor.bbox_pred.bias']
         network.load_state_dict(load_net_clean, strict=strict)
 
     def save_training_state(self, epoch, iter_step):

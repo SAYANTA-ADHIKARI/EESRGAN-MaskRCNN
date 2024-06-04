@@ -12,7 +12,7 @@ def main(config):
         data_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/patch_images",
         meta_data_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/test_data.json",
         mask_dir="/u/student/2022/ai22mtech12005/sayanta/projects/EESRGAN-MaskRCNN/test_patch_data/patch_masks",
-        batch_size=10,
+        batch_size=1,
         shuffle=False,
         validation_split=0.0,
         training=False,

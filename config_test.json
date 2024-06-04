@@ -124,9 +124,9 @@
     "path": {
         "models": "./saved_test/pretrained_models_EESRGAN_FRCNN",
         "FRCNN_model": "./saved_test/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/",
-        "pretrain_model_G": "./pretrained_weights/latest_G.pth",
-        "pretrain_model_D": "./pretrained_weights/latest_D.pth",
-        "pretrain_model_FRCNN": "./pretrained_weights/latest_FRCNN.pth",
+        "pretrain_model_G": "./saved_2/pretrained_models_EESRGAN_FRCNN/latest_G.pth",
+        "pretrain_model_D": "./saved_2/pretrained_models_EESRGAN_FRCNN/latest_D.pth",
+        "pretrain_model_FRCNN": "./saved_2/pretrained_models_EESRGAN_FRCNN/latest_FRCNN.pth",
         "pretrain_model_FRCNN_LR_LR": "./saved_test/pretrained_models_EESRGAN_FRCNN/FRCNN_model_LR_LR_cowc/0_FRCNN_LR_LR.pth",
         "training_state": "./saved_test/training_state",
         "strict_load": false,
@@ -145,7 +145,8 @@
         "data_dir_LR_train": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/train_dir/LR/",
         "data_dir_Bic_valid": "./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/Bic/x4",
         "Test_Result_LR_LR_COWC": "./saved_test/Test_Result_LR_LR_COWC/",
-        "Test_Result_SR": "./saved_test/Test_Result_SR/"
+        "Test_Result_SR": "./saved_test/Test_Result_SR/",
+        "json_path": "./saved_test/"
     },
     "logger": {
         "print_freq": 1,

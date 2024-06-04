@@ -15,6 +15,8 @@ from utils import tensor2img
 from tqdm import tqdm
 import logging
 import matplotlib.pyplot as plt
+from pycocotools import mask as mask_util
+from skimage import measure
 
 logger = logging.getLogger("val")
 
@@ -80,11 +82,11 @@ def draw_detection_boxes(new_class_conf_box, config, file_name, image, actual_im
     print(config['path']['output_images'])
     print(file_name)
     
-    source_image_path = os.path.join("./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/HR/x4", file_name + '.jpg')
-    print(source_image_path)
+    # source_image_path = os.path.join("./DetectionPatches_256x256/DetectionPatches_256x256/Potsdam_ISPRS/HR/x4", file_name + '.jpg')
+    # print(source_image_path)
     dest_image_path = os.path.join(config['path']['Test_Result_SR'], file_name+'.png')
     dest_image_path_actual = os.path.join(config['path']['Test_Result_SR'], file_name+'_actual.png')
-    source_image = cv2.imread(source_image_path, 1)
+    # source_image = cv2.imread(source_image_path, 1)
     #image = actual_image
     #print(new_class_conf_box)
     #print(len(new_class_conf_box))
@@ -95,13 +97,13 @@ def draw_detection_boxes(new_class_conf_box, config, file_name, image, actual_im
         cv2.putText(image, 'Car: '+ str((int(con*100))) + '%', (x1+5, y1+8), font, 0.2,(0,255,0),1,cv2.LINE_AA)
     #cv2.imshow('image', image)
     cv2.imwrite(dest_image_path, image)
-    for i in range(len(new_class_conf_box)):
-        clas,con,x1,y1,x2,y2 = new_class_conf_box[i]
-        cv2.rectangle(source_image, (x1, y1), (x2, y2), (0,0,255), 4)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(source_image, 'Car: '+ str((int(con*100))) + '%', (x1+5, y1+8), font, 0.2,(0,255,0),1,cv2.LINE_AA)
-    #cv2.imshow('image', image)
-    cv2.imwrite(dest_image_path_actual, source_image)
+    # for i in range(len(new_class_conf_box)):
+    #     clas,con,x1,y1,x2,y2 = new_class_conf_box[i]
+    #     cv2.rectangle(source_image, (x1, y1), (x2, y2), (0,0,255), 4)
+    #     font = cv2.FONT_HERSHEY_SIMPLEX
+    #     cv2.putText(source_image, 'Car: '+ str((int(con*100))) + '%', (x1+5, y1+8), font, 0.2,(0,255,0),1,cv2.LINE_AA)
+    # #cv2.imshow('image', image)
+    # cv2.imwrite(dest_image_path_actual, source_image)
 '''
 for generating test boxes
 '''
@@ -124,6 +126,7 @@ COLOUR_DICT = {
 def get_masks(masks, labels):
     _, H, W = masks.shape
     req_mask = np.zeros((H, W, 4))
+    req_mask[:, :, 3] = np.ones((H, W))
     labels = labels.cpu().numpy()
     unique_values, counts = np.unique(labels, return_counts=True)
     unique_counts_dict = dict(zip(unique_values, counts))
@@ -140,7 +143,7 @@ def get_masks(masks, labels):
     for label, mask in zip(labels, masks):
         color = color_dict[label].pop(0)
         new_mask = np.zeros((H, W, 4))
-        new_mask[mask > 0] = color
+        new_mask[mask > 0.45] = color
         req_mask = req_mask + new_mask
 
     np.clip(req_mask, 0, 1, out=req_mask)
@@ -186,6 +189,7 @@ def evaluate_save(model_G, model_FRCNN, data_loader, device, config):
         img_count = img.size()[0]
         images = [img[i] for i in range(img_count)]
         outputs = model_FRCNN(images)
+        outputs = cleared_outputs(outputs, iou_threshold=0.2)
         file_name = os.path.splitext(os.path.basename(image['LQ_path'][0]))[0]
         file_path = os.path.join(config['path']['Test_Result_SR'], file_name+'.txt')
         i=i+1
@@ -199,8 +203,123 @@ def evaluate_save(model_G, model_FRCNN, data_loader, device, config):
 This evaluate method is changed to pass the generator network and evalute
 the FRCNN with generated SR images
 '''
+def update_json_dict(res, json_dict):
+    result = {}
+    for key, value in res.items():
+        result[key] = {}
+        result[key]['boxes'] = value['boxes'].numpy().tolist()
+        result[key]['labels'] = value['labels'].numpy().tolist()
+        result[key]['scores'] = value['scores'].numpy().tolist()
+        if 'masks' in value:
+            masks = value['masks'].numpy()
+            masks = masks > 0.5
+            result[key]['masks'] = []
+            for i in range(masks.shape[0]):
+                m = masks[i]
+                temp_mask = np.asfortranarray(m[0]).astype(np.uint8)
+                contour = measure.find_contours(temp_mask, 0.5)
+                contour = [np.flip(c, axis=1) for c in contour]
+                contours = [c.ravel().tolist() for c in contour]
+                result[key]['masks'].append(contours)
+    json_dict.update(result)
+    return json_dict
+
+Tensor = torch.Tensor
+
+def batched_nms(
+    boxes: Tensor,
+    scores: Tensor,
+    idxs: Tensor,
+    iou_threshold: float,
+) -> Tensor:
+    """
+    Performs non-maximum suppression in a batched fashion.
+
+    Each index value correspond to a category, and NMS
+    will not be applied between elements of different categories.
+
+    Args:
+        boxes (Tensor[N, 4]): boxes where NMS will be performed. They
+            are expected to be in ``(x1, y1, x2, y2)`` format with ``0 <= x1 < x2`` and
+            ``0 <= y1 < y2``.
+        scores (Tensor[N]): scores for each one of the boxes
+        idxs (Tensor[N]): indices of the categories for each one of the boxes.
+        iou_threshold (float): discards all overlapping boxes with IoU > iou_threshold
+
+    Returns:
+        Tensor: int64 tensor with the indices of the elements that have been kept by NMS, sorted
+        in decreasing order of scores
+    """
+    # Benchmarks that drove the following thresholds are at
+    # https://github.com/pytorch/vision/issues/1311#issuecomment-781329339
+    if boxes.numel() > (4000 if boxes.device.type == "cpu" else 20000) and not torchvision._is_tracing():
+        return _batched_nms_vanilla(boxes, scores, idxs, iou_threshold)
+    else:
+        return _batched_nms_coordinate_trick(boxes, scores, idxs, iou_threshold)
+    
+def _batched_nms_coordinate_trick(
+    boxes: Tensor,
+    scores: Tensor,
+    idxs: Tensor,
+    iou_threshold: float,
+) -> Tensor:
+    # strategy: in order to perform NMS independently per class,
+    # we add an offset to all the boxes. The offset is dependent
+    # only on the class idx, and is large enough so that boxes
+    # from different classes do not overlap
+    if boxes.numel() == 0:
+        return torch.empty((0,), dtype=torch.int64, device=boxes.device)
+    max_coordinate = boxes.max()
+    offsets = idxs.to(boxes) * (max_coordinate + torch.tensor(1).to(boxes))
+    boxes_for_nms = boxes + offsets[:, None]
+    keep = torchvision.ops.nms(boxes_for_nms, scores, iou_threshold)
+    return keep
+
+def _batched_nms_vanilla(
+    boxes: Tensor,
+    scores: Tensor,
+    idxs: Tensor,
+    iou_threshold: float,
+) -> Tensor:
+    # Based on Detectron2 implementation, just manually call nms() on each class independently
+    keep_mask = torch.zeros_like(scores, dtype=torch.bool)
+    for class_id in torch.unique(idxs):
+        curr_indices = torch.where(idxs == class_id)[0]
+        curr_keep_indices = torchvision.ops.nms(boxes[curr_indices], scores[curr_indices], iou_threshold)
+        keep_mask[curr_indices[curr_keep_indices]] = True
+    keep_indices = torch.where(keep_mask)[0]
+    return keep_indices[scores[keep_indices].sort(descending=True)[1]]
+
+def cleared_outputs(outputs, iou_threshold=0.5):
+    new_outputs = []
+    for output in outputs:
+        res = {}
+        consider_idx = batched_nms(output['boxes'], output['scores'], output['labels'], iou_threshold)
+        print("NMS", consider_idx.shape, output['scores'].shape)
+        res['boxes'] = torch.index_select(output['boxes'], 0, consider_idx)
+        res['labels'] = torch.index_select(output['labels'], 0, consider_idx)
+        res['scores'] = torch.index_select(output['scores'], 0, consider_idx)
+        if 'masks' in output:
+            res['masks'] = torch.index_select(output['masks'], 0, consider_idx)
+        new_outputs.append(res)
+
+
+        consider_idx = (res['scores'] > 0.5).nonzero().squeeze()
+        print(consider_idx.shape, res['scores'].shape)
+        res['boxes'] = torch.index_select(res['boxes'], 0, consider_idx)
+        res['labels'] = torch.index_select(res['labels'], 0, consider_idx)
+        res['scores'] = torch.index_select(res['scores'], 0, consider_idx)
+        if 'masks' in output:
+            res['masks'] = torch.index_select(res['masks'], 0, consider_idx)
+
+        # Correcting labels
+        res['labels'] = res['labels'] - 1
+    return new_outputs
+
 @torch.no_grad()
-def evaluate(model_G, model_FRCNN, data_loader, device, train):
+def evaluate(model_G, model_FRCNN, data_loader, device, train, save_path=None):
+    model_G.eval()
+    model_FRCNN.eval()
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
     torch.set_num_threads(1)
@@ -218,6 +337,9 @@ def evaluate(model_G, model_FRCNN, data_loader, device, train):
     log_dict = {}
     counter = 0
     logger.info("Evaluating the model")
+
+    if save_path is not None:
+        json_dict = {}
     for image, targets in tqdm(metric_logger.log_every(data_loader, 100, header), desc="Evaluating: ", total=len(data_loader)):
         image['image_lq'] = image['image_lq'].to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -247,12 +369,15 @@ def evaluate(model_G, model_FRCNN, data_loader, device, train):
             loss_dict = reduce_dict(loss_dict)
         else:
             outputs = model_FRCNN(image)
+            # outputs = cleared_outputs(outputs, iou_threshold=0.5)
 
         if outputs is not None:
             outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
             model_time = time.time() - model_time
 
             res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+            if save_path is not None:
+                json_dict = update_json_dict(res, json_dict)
             evaluator_time = time.time()
             coco_evaluator.update(res)
             evaluator_time = time.time() - evaluator_time
@@ -282,6 +407,11 @@ def evaluate(model_G, model_FRCNN, data_loader, device, train):
             for k in log_dict.keys():
                 log_dict[k] = log_dict[k]/len(data_loader)
             
+    if save_path is not None:
+        with open(os.path.join(save_path, "results.json"), 'w') as f:    
+            import json
+            json.dump(json_dict, f)
+    
     if metric_flag:
         # gather the stats from all processes
         metric_logger.synchronize_between_processes()

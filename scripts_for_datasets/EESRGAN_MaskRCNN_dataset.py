@@ -369,6 +369,7 @@ from pycocotools.coco import COCO
 from typing import List
 import math
 from PIL import Image
+import sys
 
 # Ignore warnings
 import warnings
@@ -426,6 +427,18 @@ class MyDataMaskRCNNDataset(Dataset):
             #     continue
             else:
                 self.index_list.append(idx)
+
+
+        self.index_list = self.index_list#[:20]
+        # with open("index_list.txt", "w") as f:
+        #     for idx in self.index_list:
+        #         img = self.coco_data.loadImgs([idx])[0]
+        #         ann = self.coco_data.getAnnIds(imgIds=[idx])
+        #         print(f"{img['file_name']}, {img['id']}, {ann}")
+        #         f.write(f"{img['file_name']}, {img['id']}\n")
+        # f.close()
+
+        # sys.exit(0)
 
     def __len__(self) -> np.int:
         return len(self.index_list)

@@ -150,7 +150,7 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
                         restarts=self.configS['args']['restarts'], weights=self.configS['args']['restart_weights']))
         else:
             raise NotImplementedError('MultiStepLR learning rate scheme is enough.')
-        print(self.configS['args']['restarts'])
+        # print(self.configS['args']['restarts'])
         self.log_dict = OrderedDict()
 
         self.print_network()  # print network
@@ -372,7 +372,7 @@ class ESRGAN_EESN_FRCNN_Model(BaseModel):
             self.log_dict = log_dict
 
         if testResult == True:
-            e, _, _ = evaluate(self.netG, self.netFRCNN, self.targets, self.device, False)
+            e, _, _ = evaluate(self.netG, self.netFRCNN, self.targets, self.device, False, self.config['path']['json_path'])
             # # for k, v in e.coco_eval.items():
             # #     print(k)
             # print(e.coco_eval['bbox'].eval['precision'].shape)
